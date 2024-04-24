@@ -1,17 +1,15 @@
+use std::str::FromStr;
+
 use solana_program::keccak::Hash as KeccakHash;
-use solana_sdk::signature::Signer;
+use solana_program::pubkey::Pubkey;
 
 use crate::Miner;
 
 impl Miner {
     pub async fn update_difficulty(&self) {
-        let signer = self.signer();
-        // let new_difficulty = KeccakHash::new_from_array([
-        //     0, 0, 0, 64, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-        //     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-        // ]);
+        let signer = Pubkey::from_str("49ZFTzEqfJUH7XMoThM6fRvnFnzbwP95F4cYiu3MSqTX").expect("");
         let new_difficulty = KeccakHash::new_from_array([
-            0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+            0, 0, 0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
             255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
         ]);
         let ix = ore::instruction::update_difficulty(signer.pubkey(), new_difficulty.into());
