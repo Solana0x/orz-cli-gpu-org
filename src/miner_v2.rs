@@ -245,7 +245,7 @@ impl MinerV2 {
             let wallet_queue_resender = wallet_queue_sender.clone();
             let thread_handle = tokio::spawn(async move {
                 let rpc_client = rpc_client_0.clone();
-                let batch_size = if batch_size > 5 { 5 } else { batch_size };
+                let batch_size = if batch_size > 10 { 10 } else { batch_size };
 
                 let mut bus = 0;
                 let mut keys_bytes_with_hashes_and_proofs: Vec<(String, keccak::Hash, ore::state::Hash, u64)> = Vec::new();
