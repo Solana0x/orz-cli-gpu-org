@@ -268,8 +268,6 @@ impl MinerV2 {
                                 if proof.hash == last_hash.0 {
                                     println!("Proof has already been hashed, potentially stale rpc data.");
                                     println!("Simulating transaction...");
-                                    break;
-                                    } else if {
                                     let (_hash, last_valid_blockheight) = rpc_client
                                         .get_latest_blockhash_with_commitment(
                                             rpc_client.commitment(),
@@ -316,7 +314,6 @@ impl MinerV2 {
                                         Err(err) => {
                                             println!("Simulaton error: {:?}", err);
                                         }
-                                    }
                                     }
 
                                     hash_failed = true;
