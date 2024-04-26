@@ -1,6 +1,5 @@
 use base64::engine::general_purpose::STANDARD as BASE64;
-use std::{thread, time::Duration};
-use tokio::time::sleep;
+const MAX_RETRIES: u32 = 3;
 use base64::engine::Engine as _;
 use ore::{state::Bus, utils::AccountDeserialize};
 use ore::{BUS_ADDRESSES, BUS_COUNT};
@@ -257,7 +256,6 @@ impl MinerV2 {
                         loop {
                             let treasury = get_treasury(&rpc_client).await;
                             let proof = get_proof(&rpc_client, signer.pubkey()).await;
-                            const MAX_RETRIES: u32 = 3;
                             if let Some(last_hash) = mssg.wallet.1 {
                                 println!("Wallet last hash: {}", last_hash.0);
                                 if proof.hash == last_hash.0 {
