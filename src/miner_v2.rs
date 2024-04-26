@@ -258,86 +258,88 @@ impl MinerV2 {
                             let proof = get_proof(&rpc_client, signer.pubkey()).await;
                             if let Some(last_hash) = mssg.wallet.1 {
                                 println!("Wallet last hash: {}", last_hash.0);
-                                if proof.hash == last_hash.0 {
-                                    println!("Proof has already been hashed, potentially stale rpc data.");
-                                    println!("Simulating transaction...");
-                            
-                                    let mut retries = 0;
-                                    let mut last_valid_blockheight = 0;
-                                    let mut _hash = String::new();
-                            
-                                    // Attempt to fetch the latest blockhash with retry logic
-                                    while retries < MAX_RETRIES {
-                                        match rpc_client.get_latest_blockhash_with_commitment(rpc_client.commitment()).await {
-                                            Ok((hash, blockheight)) => {
-                                                _hash = hash;
-                                                last_valid_blockheight = blockheight;
-                                                break;
-                                            },
-                                            Err(e) => {
-                                                println!("Failed to get latest blockhash: {:?}", e);
-                                                retries += 1;
-                                                sleep(Duration::from_secs(1)).await;
+                                if let Some(last_hash) = mssg.wallet.1 {
+                                    println!("Wallet last hash: {}", last_hash.0);
+                                    if proof.hash == last_hash.0 {
+                                        println!("Proof has already been hashed, potentially stale rpc data.");
+                                        println!("Simulating transaction...");
+                                
+                                        let mut retries = 0;
+                                        let mut last_valid_blockheight = 0;
+                                        let mut _hash = Hash::default(); // Use the default Hash type directly
+                                
+                                        // Attempt to fetch the latest blockhash with retry logic
+                                        while retries < MAX_RETRIES {
+                                            match rpc_client.get_latest_blockhash_with_commitment(rpc_client.commitment()).await {
+                                                Ok((hash, blockheight)) => {
+                                                    _hash = hash; // No need to convert, use Hash directly
+                                                    last_valid_blockheight = blockheight;
+                                                    break;
+                                                },
+                                                Err(e) => {
+                                                    println!("Failed to get latest blockhash: {:?}", e);
+                                                    retries += 1;
+                                                    sleep(Duration::from_secs(1)).await;
+                                                }
                                             }
                                         }
-                                    }
-                            
-                                    if retries == MAX_RETRIES {
-                                        println!("Failed to fetch latest blockhash after retries.");
-                                    } else {
-                                        // Continue with the transaction simulation
-                                        match MinerV2::get_bus(&rpc_client, bus).await {
-                                            Ok(bus) => {
-                                                let bus_rewards = (bus.rewards as f64) / (10f64.powf(ore::TOKEN_DECIMALS as f64));
-                                                let ix_mine = ore::instruction::mine(
-                                                    signer.pubkey(),
-                                                    BUS_ADDRESSES[bus.id as usize],
-                                                    _hash.into(),
-                                                    last_hash.2,
-                                                );
-                                                let tx = Transaction::new_with_payer(&[ix_mine], None);
-                            
-                                                match rpc_client.simulate_transaction_with_config(
-                                                    &tx,
-                                                    RpcSimulateTransactionConfig {
-                                                        sig_verify: false,
-                                                        replace_recent_blockhash: true,
-                                                        commitment: Some(rpc_client.commitment()),
-                                                        encoding: Some(UiTransactionEncoding::Base64),
-                                                        accounts: None,
-                                                        min_context_slot: Some(last_valid_blockheight),
-                                                        inner_instructions: false,
-                                                    },
-                                                ).await {
-                                                    Ok(sim_res) => {
-                                                        if let Some(err) = sim_res.value.err {
-                                                            println!("Simulation error: {:?}", err);
-                                                        } else {
-                                                            println!("Simulation successful.");
-                                                            println!("Adding wallet and hash to tx bundler.");
-                                                            let data = (wallet.clone(), last_hash.1, last_hash.0, last_hash.2);
-                                                            keys_bytes_with_hashes_and_proofs.push(data);
-                                                        }
-                                                    },
-                                                    Err(err) => println!("Simulation error: {:?}", err),
-                                                }
-                                            },
-                                            Err(e) => println!("Failed to get bus: {:?}", e),
+                                
+                                        if retries == MAX_RETRIES {
+                                            println!("Failed to fetch latest blockhash after retries.");
+                                        } else {
+                                            // Continue with the transaction simulation
+                                            match MinerV2::get_bus(&rpc_client, bus).await {
+                                                Ok(bus) => {
+                                                    let bus_rewards = (bus.rewards as f64) / (10f64.powf(ore::TOKEN_DECIMALS as f64));
+                                                    let ix_mine = ore::instruction::mine(
+                                                        signer.pubkey(),
+                                                        BUS_ADDRESSES[bus.id as usize],
+                                                        _hash, // Use Hash directly
+                                                        last_hash.2,
+                                                    );
+                                                    let tx = Transaction::new_with_payer(&[ix_mine], None);
+                                
+                                                    match rpc_client.simulate_transaction_with_config(
+                                                        &tx,
+                                                        RpcSimulateTransactionConfig {
+                                                            sig_verify: false,
+                                                            replace_recent_blockhash: true,
+                                                            commitment: Some(rpc_client.commitment()),
+                                                            encoding: Some(UiTransactionEncoding::Base64),
+                                                            accounts: None,
+                                                            min_context_slot: Some(last_valid_blockheight),
+                                                            inner_instructions: false,
+                                                        },
+                                                    ).await {
+                                                        Ok(sim_res) => {
+                                                            if let Some(err) = sim_res.value.err {
+                                                                println!("Simulation error: {:?}", err);
+                                                            } else {
+                                                                println!("Simulation successful.");
+                                                                println!("Adding wallet and hash to tx bundler.");
+                                                                let data = (wallet.clone(), last_hash.1, last_hash.0, last_hash.2);
+                                                                keys_bytes_with_hashes_and_proofs.push(data);
+                                                            }
+                                                        },
+                                                        Err(err) => println!("Simulation error: {:?}", err),
+                                                    }
+                                                },
+                                                Err(e) => println!("Failed to get bus: {:?}", e),
+                                            }
                                         }
-                                    }
-                            
-                                    let w = WalletQueueMessage {
-                                        wallet: (wallet, Some((last_hash.0, last_hash.1, last_hash.2))),
-                                    };
-                                    if wallet_queue_resender.send(w).await.is_err() {
-                                        println!("Failed to send wallet to queue.");
+                                
+                                        let w = WalletQueueMessage {
+                                            wallet: (wallet, Some((last_hash.0, last_hash.1, last_hash.2))),
+                                        };
+                                        if wallet_queue_resender.send(w).await.is_err() {
+                                            println!("Failed to send wallet to queue.");
+                                        }
+                                    } else {
+                                        println!("New hash proof found, starting hasher.");
                                     }
                                 } else {
-                                    println!("New hash proof found, starting hasher.");
+                                    println!("No last hash. Starting hasher.");
                                 }
-                            } else {
-                                println!("No last hash. Starting hasher.");
-                            }
                             let st = wallet.clone();
                             let signer = Keypair::from_base58_string(&st);
                             let hash_and_pubkey = [(
