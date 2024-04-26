@@ -337,9 +337,11 @@ impl MinerV2 {
                                     } else {
                                         println!("New hash proof found, starting hasher.");
                                     }
-                            } else {
-                                        println!("No last hash. Starting hasher.");
+                                } else {
+                                    println!("No last hash. Starting hasher.");
+                                }
                             }
+                            
                                 
                             let st = wallet.clone();
                             let signer = Keypair::from_base58_string(&st);
