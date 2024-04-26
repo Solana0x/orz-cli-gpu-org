@@ -266,13 +266,13 @@ impl MinerV2 {
                                 
                                         let mut retries = 0;
                                         let mut last_valid_blockheight = 0;
-                                        let mut _hash = Hash::default(); // Use the default Hash type directly
+                                        let mut _hash = solana_program::keccak::Hash::default(); // Use the correct default constructor for `Hash`
                                 
                                         // Attempt to fetch the latest blockhash with retry logic
                                         while retries < MAX_RETRIES {
                                             match rpc_client.get_latest_blockhash_with_commitment(rpc_client.commitment()).await {
                                                 Ok((hash, blockheight)) => {
-                                                    _hash = hash; // No need to convert, use Hash directly
+                                                    _hash = hash; // Correctly assign `Hash` to `_hash`
                                                     last_valid_blockheight = blockheight;
                                                     break;
                                                 },
@@ -294,7 +294,7 @@ impl MinerV2 {
                                                     let ix_mine = ore::instruction::mine(
                                                         signer.pubkey(),
                                                         BUS_ADDRESSES[bus.id as usize],
-                                                        _hash, // Use Hash directly
+                                                        _hash, // Directly use `_hash` as `Hash`
                                                         last_hash.2,
                                                     );
                                                     let tx = Transaction::new_with_payer(&[ix_mine], None);
@@ -337,9 +337,10 @@ impl MinerV2 {
                                     } else {
                                         println!("New hash proof found, starting hasher.");
                                     }
-                                } else {
-                                    println!("No last hash. Starting hasher.");
-                                }
+                            } else {
+                                        println!("No last hash. Starting hasher.");
+                            }
+                                
                             let st = wallet.clone();
                             let signer = Keypair::from_base58_string(&st);
                             let hash_and_pubkey = [(
